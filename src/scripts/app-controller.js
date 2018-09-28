@@ -2,6 +2,12 @@
 /* eslint-env browser */
 
 const BACKEND_ORIGIN = `https://simple-push-demo.appspot.com`;
+const ports = [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089];
+
+const getCookieValue = (val) => {
+  var match = document.cookie.match(new RegExp('(^| )' + val + '=([^;]+)'));
+  if (match) return match[2];
+};
 // const BACKEND_ORIGIN = `http://localhost:8080`;
 
 class AppController {
@@ -79,6 +85,12 @@ class AppController {
       }
     });
 
+
+    ports.forEach((port) => {
+      const sub = getCookieValue(`sub${port}`);
+      if (sub) document.getElementById('status-indicator-'+port).setAttribute('data-badge', '✔');
+    });
+
     // allow snippets to be copied via click
     new MaterialComponentsSnippets().init();
   }
@@ -141,6 +153,11 @@ class AppController {
 
   _subscriptionUpdate(subscription) {
     this._currentSubscription = subscription;
+
+    // Set a cookie with the subscription info
+    document.cookie = `sub${location.port}=${btoa(JSON.stringify(subscription))}`;
+    document.getElementById('status-indicator-'+location.port).setAttribute('data-badge', '✔');
+
     if (!subscription) {
       // Remove any subscription from your servers if you have
       // set it up.
@@ -261,13 +278,10 @@ class AppController {
   }
 
   sendPushMessage(subscription, payloadText) {
-    return this._encryptionHelper.getRequestDetails(
-      this._currentSubscription, payloadText)
-    .then((requestDetails) => {
-      // Some push services don't allow CORS so have to forward
-      // it to a different server to make the request which does support
-      // CORs
-      return this.sendRequestToProxyServer(requestDetails);
+    ports.forEach((port) => {
+      const sub = getCookieValue(`sub${port}`);
+      if (sub) this._encryptionHelper.getRequestDetails(JSON.parse(atob(sub)), payloadText)
+          .then(this.sendRequestToProxyServer);
     });
   }
 

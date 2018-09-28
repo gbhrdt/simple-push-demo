@@ -18,17 +18,25 @@
 'use strict';
 
 const gulp = require('gulp');
-const browserSync = require('browser-sync').create();
+
+const ports = [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089];
+
+const browserSync = Object.assign(...ports.map(port => ({ [port]: require('browser-sync').create() })));
 
 // Stash this in case other tasks want to use it
-global.config.browserSyncReload = browserSync.reload;
+global.config.browserSyncReload = () => ports.forEach((port) => browserSync[port].reload());
 
 gulp.task('browsersync', () => {
-  browserSync.init({
-    server: {
-      baseDir: global.config.dest,
-    },
-    port: 8080,
-    open: false,
+  ports.forEach((port) => {
+    browserSync[port].init({
+      server: {
+        baseDir: global.config.dest,
+      },
+      ui: {
+        port: port - 5079
+      },
+      port,
+      open: false,
+    });
   });
 });
